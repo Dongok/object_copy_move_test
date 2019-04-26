@@ -9,19 +9,20 @@ class Item {
 		std::string name;
 		//default
 		Item():name("default"){
-			std::cout << "default construct\n";
-			std::cout << "this->name=" << this->name << "\n";
+			//std::cout << "default construct\n";
+			//std::cout << "this->name=" << this->name << "\n";
 		};
 
+                
 		// copy
 		Item(Item& src):name("copy"){
-			std::cout << "copy construct\n";			
-			std::cout << "this->name=" << this->name << "\n";
+			//std::cout << "copy construct\n";			
+			//std::cout << "this->name=" << this->name << "\n";
 		}
 
 		Item(Item && src ):name("move"){
-			std::cout << "move construct\n";
-			std::cout << "this->name=" << this->name << "\n";
+			//std::cout << "move construct\n";
+			//std::cout << "this->name=" << this->name << "\n";
 		}
 
 		Item& operator=(Item&& src){
@@ -53,6 +54,58 @@ class DefaultItem {
 };
 
 
+Item copyItem(){
+    return Item();
+}
+
+Item moveItem(){
+    return std::move(Item());
+}
+
+
+void TestItemMove(){
+    std::chrono::time_point<std::chrono::system_clock> start, end; 
+
+    start = std::chrono::system_clock::now(); 
+    for(int i =0; i < 1000000; i++){
+        Item x = moveItem();
+    }
+    end = std::chrono::system_clock::now(); 
+    std::chrono::duration<double> elapsed_seconds = end - start; 
+    std::cout << "stdmove Item duration1=" << elapsed_seconds.count()  << "s\n";
+
+    start = std::chrono::system_clock::now(); 
+    for(int i =0; i < 1000000; i++){
+        Item x = moveItem();
+    }
+    end = std::chrono::system_clock::now(); 
+    elapsed_seconds = end - start; 
+    std::cout << "stdmove Item duration2=" << elapsed_seconds.count()  << "s\n";
+
+}
+
+void TestItemCopy(){
+    std::chrono::time_point<std::chrono::system_clock> start, end; 
+    std::chrono::duration<double> elapsed_seconds; 
+
+    start = std::chrono::system_clock::now(); 
+    for(int i =0; i < 1000000; i++){
+        Item x = copyItem();
+    }
+    end = std::chrono::system_clock::now(); 
+    elapsed_seconds = end - start; 
+    std::cout << "get Item duration=1" << elapsed_seconds.count()  << "s\n";
+
+    start = std::chrono::system_clock::now(); 
+    for(int i =0; i < 1000000; i++){
+        Item x = copyItem();
+    }
+    end = std::chrono::system_clock::now(); 
+    elapsed_seconds = end - start; 
+
+    std::cout << "get Item duration=2" << elapsed_seconds.count()  << "s\n";
+}
+
 DefaultItem getD(){
     DefaultItem a;
     return a;
@@ -68,7 +121,7 @@ void TestDefault(){
     start = std::chrono::system_clock::now(); 
 
 
-    for(int i =0; i < 1000000; i++){
+    for(int i =0; i < 100000; i++){
         DefaultItem x = getStdMoveD();
     }
 
@@ -76,13 +129,11 @@ void TestDefault(){
     std::chrono::duration<double> elapsed_seconds = end - start; 
 
     std::cout << "stdmove duration=" << elapsed_seconds.count()  << "s\n";
-    
-    std::cout << "=====================================================================================\n";
 
     start = std::chrono::system_clock::now(); 
 
 
-    for(int i =0; i < 1000000; i++){
+    for(int i =0; i < 100000; i++){
         DefaultItem x = getD();
     }
 
@@ -131,5 +182,7 @@ void TestCopy(){
 
 int main(int argc , const char* args[]){
         TestDefault();
+        TestItemMove();
+        TestItemCopy();
 	return 1;
 }

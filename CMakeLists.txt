@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.5)
 project(object_copy_move_test)
 
 set(CMAKE_CXX_STANDARD 14)

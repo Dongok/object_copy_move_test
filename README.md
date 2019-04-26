@@ -11,9 +11,8 @@
 # 테스트1 
 아무런 operator 를 만들지 않은  class를 function에서 return으로 받을때
 
-stdmove duration=13.6333s
-=====================================================================================
-getD duration=13.2515s
+* stdmove duration=13.6333s
+* getD duration=13.2515s
 
 
 -> 횟수를 줄였을때는 처음돌린 function이 더 느리게 나왔습니다. 
