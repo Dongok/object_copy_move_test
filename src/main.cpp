@@ -1,5 +1,8 @@
 #include <iostream>
 #include <memory>
+#include <chrono>
+#include <vector>
+
 
 class Item {
 	public:
@@ -37,9 +40,62 @@ class Item {
 		}
 };
 
+class DefaultItem {
+    private:
+        std::vector<std::string> dummy;
+
+    public:
+        DefaultItem(){
+            for(int i =0; i < 100; i++){
+                this->dummy.push_back("abcdef");
+            }
+        }
+};
 
 
-int main(int argc , const char* args[]){
+DefaultItem getD(){
+    DefaultItem a;
+    return a;
+}
+
+DefaultItem getStdMoveD(){
+    DefaultItem a;
+    return std::move(a);
+}
+
+void TestDefault(){
+    std::chrono::time_point<std::chrono::system_clock> start, end; 
+    start = std::chrono::system_clock::now(); 
+
+
+    for(int i =0; i < 1000000; i++){
+        DefaultItem x = getStdMoveD();
+    }
+
+    end = std::chrono::system_clock::now(); 
+    std::chrono::duration<double> elapsed_seconds = end - start; 
+
+    std::cout << "stdmove duration=" << elapsed_seconds.count()  << "s\n";
+    
+    std::cout << "=====================================================================================\n";
+
+    start = std::chrono::system_clock::now(); 
+
+
+    for(int i =0; i < 1000000; i++){
+        DefaultItem x = getD();
+    }
+
+    end = std::chrono::system_clock::now(); 
+    elapsed_seconds = end - start; 
+
+    std::cout << "getD duration=" << elapsed_seconds.count()  << "s\n";
+}
+
+
+void TestCopy(){
+        std::string x="12313123";
+
 	std::cout << "start\n";
 
 	Item a;
@@ -70,6 +126,10 @@ int main(int argc , const char* args[]){
 	Item e = std::move(a);
 	e.name ="eeee";
 	std::cout << "e.name=" << e.name <<"\n";
-	std::cout << "a.name=" << a.name <<"\n"; 
+	std::cout << "a.name=" << a.name <<"\n";
+}
+
+int main(int argc , const char* args[]){
+        TestDefault();
 	return 1;
 }
