@@ -2,41 +2,85 @@
 #include <memory>
 #include <chrono>
 #include <vector>
+#include <new>
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include <sstream>
 
+int number_of_allocs = 0;
+
+void* operator new(std::size_t size) throw(std::bad_alloc) {
+  ++number_of_allocs;
+  void *p = malloc(size);
+  if(!p) throw std::bad_alloc();
+  return p;
+}
+
+void* operator new  [](std::size_t size) throw(std::bad_alloc) {
+  ++number_of_allocs;
+  void *p = malloc(size);
+  if(!p) throw std::bad_alloc();
+  return p;
+}
+
+void* operator new  [](std::size_t size, const std::nothrow_t&) throw() {
+  ++number_of_allocs;
+  return malloc(size);
+}
+void* operator new   (std::size_t size, const std::nothrow_t&) throw() {
+  ++number_of_allocs;
+  return malloc(size);
+}
+
+
+void operator delete(void* ptr) throw() { free(ptr); }
+void operator delete (void* ptr, const std::nothrow_t&) throw() { free(ptr); }
+void operator delete[](void* ptr) throw() { free(ptr); }
+void operator delete[](void* ptr, const std::nothrow_t&) throw() { free(ptr); }
 
 class Item {
 	public:
 		std::string name;
 		//default
-		Item():name("default"){
-			//std::cout << "default construct\n";
+		Item(std::string s):name(s){
+			std::cout << "default construct\n";
+		}
+
+		Item(){
+			std::cout << "default construct\n";
 			//std::cout << "this->name=" << this->name << "\n";
 		};
 
                 
 		// copy
-		Item(Item& src):name("copy"){
-			//std::cout << "copy construct\n";			
+		Item(Item& src){
+			std::cout << "copy construct\n";			
 			//std::cout << "this->name=" << this->name << "\n";
 		}
 
-		Item(Item && src ):name("move"){
+		Item(Item && src ):name(src.name){
 			//std::cout << "move construct\n";
 			//std::cout << "this->name=" << this->name << "\n";
 		}
 
 		Item& operator=(Item&& src){
 			std::cout << "move operator\n";
-			name = std::move(src.name);
-			return *this;
+			return src;
 		}
 
 		Item& operator=(const Item& src){
 			std::cout << "copy operator\n";
 			if(this == &src ){
+				std::cout << "copy same\n";
 				return *this;
 			}
-			name = std::move(src.name);
+			name = src.name;
+			return *this;
+		}
+
+		Item& operator=(Item& src){
+		std::cout << "a\n";
 			return *this;
 		}
 };
@@ -47,7 +91,7 @@ class DefaultItem {
 
     public:
         DefaultItem(){
-            for(int i =0; i < 100; i++){
+            for(int i =0; i < 1; i++){
                 this->dummy.push_back("abcdef");
             }
         }
@@ -55,7 +99,7 @@ class DefaultItem {
 
 
 Item copyItem(){
-    return Item();
+    return Item("copy");
 }
 
 Item moveItem(){
@@ -67,7 +111,7 @@ void TestItemMove(){
     std::chrono::time_point<std::chrono::system_clock> start, end; 
 
     start = std::chrono::system_clock::now(); 
-    for(int i =0; i < 1000000; i++){
+    for(int i =0; i < 100; i++){
         Item x = moveItem();
     }
     end = std::chrono::system_clock::now(); 
@@ -75,7 +119,7 @@ void TestItemMove(){
     std::cout << "stdmove Item duration1=" << elapsed_seconds.count()  << "s\n";
 
     start = std::chrono::system_clock::now(); 
-    for(int i =0; i < 1000000; i++){
+    for(int i =0; i < 1000; i++){
         Item x = moveItem();
     }
     end = std::chrono::system_clock::now(); 
@@ -89,7 +133,7 @@ void TestItemCopy(){
     std::chrono::duration<double> elapsed_seconds; 
 
     start = std::chrono::system_clock::now(); 
-    for(int i =0; i < 1000000; i++){
+    for(int i =0; i < 10; i++){
         Item x = copyItem();
     }
     end = std::chrono::system_clock::now(); 
@@ -97,7 +141,7 @@ void TestItemCopy(){
     std::cout << "get Item duration=1" << elapsed_seconds.count()  << "s\n";
 
     start = std::chrono::system_clock::now(); 
-    for(int i =0; i < 1000000; i++){
+    for(int i =0; i < 10; i++){
         Item x = copyItem();
     }
     end = std::chrono::system_clock::now(); 
@@ -119,7 +163,6 @@ DefaultItem getStdMoveD(){
 void TestDefault(){
     std::chrono::time_point<std::chrono::system_clock> start, end; 
     start = std::chrono::system_clock::now(); 
-
 
     for(int i =0; i < 100000; i++){
         DefaultItem x = getStdMoveD();
@@ -181,8 +224,13 @@ void TestCopy(){
 }
 
 int main(int argc , const char* args[]){
-        TestDefault();
-        TestItemMove();
+ int start(number_of_allocs);
+
+        //TestDefault();
+        //TestItemMove();
         TestItemCopy();
+  int end(number_of_allocs);
+
+  std::cout << "Number of Allocs: " << end-start << "\n";
 	return 1;
 }
