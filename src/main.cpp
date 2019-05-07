@@ -9,7 +9,7 @@
 #include <sstream>
 
 int number_of_allocs = 0;
-
+/**
 void *operator new(std::size_t size) throw(std::bad_alloc) {
   std::cout << "malloc new1\n";
   ++number_of_allocs;
@@ -41,10 +41,56 @@ void operator delete(void *ptr) throw() { free(ptr); }
 void operator delete(void *ptr, const std::nothrow_t &) throw() { free(ptr); }
 void operator delete[](void *ptr) throw() { free(ptr); }
 void operator delete[](void *ptr, const std::nothrow_t &) throw() { free(ptr); }
+**/
+
+class Ent {
+  public: 
+    std::string name;
+    Ent(std::string a):name(a){
+    }
+
+    explicit Ent(const Ent* org){
+        std::cout << "copy Ent\n";
+        this->name = org->name;
+    }
+
+    ~Ent(){
+      std::cout << "delete Ent\n";
+    }
+
+};
+
+class DeItem{
+  public:
+    Ent* ent;
+
+    DeItem() = delete;
+    DeItem(std::string a){
+      this->ent = new Ent(a);
+    }
+};
+
+class CpItem{
+  public:
+    Ent* ent;
+
+    CpItem(std::string a){
+      this->ent = new Ent(a);
+    }
+
+    CpItem(CpItem &src) {
+      this->ent = new Ent(src.ent);
+    }
+
+    CpItem(CpItem &&src){
+      this->ent = src.ent;
+    }
+};
 
 class Item {
  public:
   std::string name;
+  Ent* ent;
 
   /**
    * 기본 생성자
@@ -53,6 +99,7 @@ class Item {
    */
   Item(std::string s) : name(s) {
     std::cout << "default construct\n";
+    this->ent = new Ent("defaultEnt");
   }
 
   /**
@@ -60,6 +107,7 @@ class Item {
    */
   Item() {
     std::cout << "default construct\n";
+    this->ent = new Ent("1");
     //std::cout << "this->name=" << this->name << "\n";
   };
 
@@ -74,6 +122,7 @@ class Item {
    */
   Item(Item &src) {
     std::cout << "copy construct\n";
+    this->ent = src.ent;
     //std::cout << "this->name=" << this->name << "\n";
   }
 
@@ -87,6 +136,7 @@ class Item {
    */
   Item(Item &&src) : name(src.name) {
     std::cout << "move construct\n";
+    this->ent = src.ent;
     //std::cout << "this->name=" << this->name << "\n";
   }
 
@@ -117,11 +167,6 @@ class DefaultItem {
 
  public:
   DefaultItem() {
-    std::cout << "DefaultItem : default construct\n";
-
-    for (int i = 0; i < 1; i++) {
-      this->dummy.push_back("abcdef");
-    }
   }
 };
 
@@ -247,13 +292,13 @@ void TestCopy() {
 void TestConstruct() {
 
   DefaultItem default1;
-  std::cout << "TestConstruct:address default1=" << &default1 << "\n";
+  std::cout << "TestConstruct:address default1=" << &default1 << "\n\n";
 
   DefaultItem defaultCopy = default1;
-  std::cout << "TestConstruct:address defaultCopy=" << &defaultCopy << "\n";
+  std::cout << "TestConstruct:address defaultCopy=" << &defaultCopy << "\n\n";
 
   DefaultItem defaultMove = std::move(default1);
-  std::cout << "TestConstruct:address defaultMove=" << &defaultMove << "\n";
+  std::cout << "TestConstruct:address defaultMove=" << &defaultMove << "\n\n";
 }
 
 /**
@@ -261,41 +306,82 @@ void TestConstruct() {
  */
 void TestConstruct2() {
   Item default1;
-  std::cout << "TestConstruct2:address default1=" << &default1 << "\n";
+  std::cout << "TestConstruct2:address default1=" << &default1 << "\n\n";
 
   Item defaultCopy = default1;
-  std::cout << "TestConstruct2:address defaultCopy=" << &defaultCopy << "\n";
+  std::cout << "TestConstruct2:address defaultCopy=" << &defaultCopy << "\n\n";
 
   Item defaultMove = std::move(default1);
-  std::cout << "TestConstruct2:address defaultMove=" << &defaultMove << "\n";
+  std::cout << "TestConstruct2:address defaultMove=" << &defaultMove << "\n\n";
 }
 
 void TestConstruct3() {
   Item* default1 = new Item();
-  std::cout << "TestConstruct3:address default1=" << default1 << "\n";
+  std::cout << "TestConstruct3:address default1=" << default1 << "\n\n";
 
   Item* defaultCopy = default1;
-  std::cout << "TestConstruct3:address defaultCopy=" << defaultCopy << "\n";
+  std::cout << "TestConstruct3:address defaultCopy=" << defaultCopy << "\n\n";
 
   Item* defaultMove = std::move(default1);
-  std::cout << "TestConstruct3:address defaultMove=" << defaultMove << "\n";
+  std::cout << "TestConstruct3:address defaultMove=" << defaultMove << "\n\n";
+}
+
+void WhyUseTest1() {
+  DeItem orgDe = DeItem("orgDe");
+  std::cout << "orgDe.ent->name=" << orgDe.ent->name << "," << orgDe.ent << "\n";
+
+  DeItem copyDe = orgDe;
+  std::cout << "copyDe.ent->name=" << copyDe.ent->name << "," << copyDe.ent << "\n";
+
+  DeItem moveDe = std::move(orgDe);
+  std::cout << "moveDe.ent->name=" << moveDe.ent->name << "," << moveDe.ent << "\n";
+
+  orgDe.ent->name="EndOfCopy";  
+  std::cout << "orgDe.ent->name의 이름을 변경\n";
+  std::cout << "orgDe.ent->name=" << orgDe.ent->name << "," << orgDe.ent << "\n";
+  std::cout << "copyDe.ent->name=" << copyDe.ent->name << "," << copyDe.ent << "\n";
+  std::cout << "moveDe.ent->name=" << moveDe.ent->name << "," << moveDe.ent << "\n";
+
+  std::cout << "DeItem 은 orgDe의 ent의 name이 다른 변수에도 영향을 미친다.\n";
+  CpItem org = CpItem("org");
+  std::cout << "org.ent->name=" << org.ent->name << "," << org.ent << "\n\n";
+
+  CpItem copy = org;
+  std::cout << "copy.ent->name=" << copy.ent->name << "," << copy.ent << "\n\n";
+
+  CpItem move = std::move(org);
+  std::cout << "move.ent->name=" << move.ent->name << "," << move.ent << "\n\n";
+
+  org.ent->name="CpItemCopyEnd";
+  std::cout << "CpItem org의 ent->name을 변경\n";
+
+  std::cout << "org.ent->name=" << org.ent->name << "," << org.ent << "\n\n";
+  std::cout << "copy.ent->name=" << copy.ent->name << "," << copy.ent << "\n\n";
+  std::cout << "move.ent->name=" << move.ent->name << "," << move.ent << "\n\n";
+
+  std::cout << "class의 포인터 멤버는 별도의 생성자를 지정하지 않으면 참조된다..\n"; 
 }
 
 int main(int argc, const char *args[]) {
   int start(number_of_allocs);
-  std::cout << "start TestConstruct===============================================\n";
+  std::cout << "start TestConstruct===============================================\n\n";
   TestConstruct();
 
-  std::cout << "start TestConstruct2===============================================\n";
+  std::cout << "start TestConstruct2===============================================\n\n";
   TestConstruct2();
 
-  std::cout << "start TestConstruct3===============================================\n";
+  std::cout << "start TestConstruct3===============================================\n\n";
   TestConstruct3();
+
+
+  std::cout << "왜 복사 , 이동을 구별해야 할까? \n";
+  WhyUseTest1();
 
   //TestDefault();
   //TestItemMove()
   // TestItemCopy();
   int end(number_of_allocs);
+  
 
   std::cout << "Number of Allocs: " << end - start << "\n";
   return 1;
