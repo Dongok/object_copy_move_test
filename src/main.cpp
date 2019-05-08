@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <map>
 
 int number_of_allocs = 0;
 /**
@@ -66,6 +67,7 @@ class DeItem{
 
     DeItem() = delete;
     DeItem(std::string a){
+      std::cout << "DeItem create\n";
       this->ent = new Ent(a);
     }
 };
@@ -75,14 +77,17 @@ class CpItem{
     Ent* ent;
 
     CpItem(std::string a){
+      std::cout << "cp Item Create\n";
       this->ent = new Ent(a);
     }
 
-    CpItem(CpItem &src) {
+    CpItem(const CpItem &src) {
+      std::cout << "cp Item CopyCreate\n";
       this->ent = new Ent(src.ent);
     }
 
     CpItem(CpItem &&src){
+      std::cout << "cp Item MoveCreate\n";
       this->ent = src.ent;
     }
 };
@@ -326,6 +331,98 @@ void TestConstruct3() {
   std::cout << "TestConstruct3:address defaultMove=" << defaultMove << "\n\n";
 }
 
+std::map<int , DeItem> MoveReturnDeItemMap(){
+  std::map<int , DeItem> ret;
+  DeItem a = DeItem("move_name_0");
+  ret.insert(std::pair<int,DeItem>(0,a));
+  std::cout << "Move Org DeItem Address=" << &ret.at(0) << "\n";
+  a.ent->name="move_deItem_change_name";
+  //ret.insert(std::pair<int,DeItem>(1,DeItem("move_name_1")));
+  //ret.insert(std::pair<int,DeItem>(2,DeItem("name_2")));
+  return std::move(ret);
+}
+
+std::map<int , DeItem> DefaultReturnDeItemMap(){
+  std::map<int , DeItem> ret;
+  DeItem a = DeItem("de_name_0");
+  ret.insert(std::pair<int,DeItem>(0,a));
+  std::cout << "Default Org DeItem Address=" << &ret.at(0) << "\n";
+  a.ent->name="deItem_change_name";
+  //ret.insert(std::pair<int,DeItem>(1,DeItem("De_name_1")));
+  //ret.insert(std::pair<int,DeItem>(2,DeItem("name_2")));
+  return ret;
+}
+
+std::map<int , CpItem> DefaultReturnCpItemMap(){
+  std::map<int , CpItem> ret;
+  CpItem a = CpItem("name_0");
+  ret.insert(std::pair<int,CpItem>(0,a)); // <- Copy Construct 
+  std::cout << "Default Org CpItem Address=" << &ret.at(0) << "\n";
+  a.ent->name="default cpItem ChangeName";
+  ret.insert(std::pair<int,CpItem>(0,CpItem("CpItem2"))); //<- 일반 생성자가 호출됨
+  //CpItem 의 move Construct 발생
+  return ret;
+}
+
+std::map<int , CpItem> MoveReturnCpItemMap(){
+  std::map<int , CpItem> ret;
+  CpItem a = CpItem("name_0");
+  ret.insert(std::pair<int,CpItem>(0,a));
+  std::cout << "Move Org CpItem Address=" << &ret.at(0) << "\n";
+  a.ent->name="move cpItem ChangeName";
+  ret.insert(std::pair<int,CpItem>(1,CpItem("aaaa")));
+  //CpItem 의 move Construct 발생
+  return std::move(ret);
+}
+
+void MoveReturnCpItemMap1(){
+  std::map<int , CpItem> ret;
+  ret.insert(std::pair<int,CpItem>(0,CpItem("aaaa")));
+  std::cout << "void Move Org CpItem Address=" << &ret.at(0) << "\n";
+
+}
+
+void WhyUseTest2(){
+  MoveReturnCpItemMap1();
+  std::cout << "\n===================================================\n\n";
+  
+  std::map<int , DeItem> defaultReturn = DefaultReturnDeItemMap();
+  defaultReturn.at(0).ent->name="changeDeName";
+  for(std::map<int , DeItem>::iterator deIt = defaultReturn.begin(); deIt != defaultReturn.end(); deIt++ ){
+      std::cout << "DefaultDe" << "="; 
+      std::cout << deIt->first << ":";
+      std::cout << deIt->second.ent->name << "\n";
+  }
+  std::cout << "\n===================================================\n\n";
+
+  std::map<int , DeItem> moveReturn = MoveReturnDeItemMap();
+  for(std::map<int , DeItem>::iterator deIt = moveReturn.begin(); deIt != moveReturn.end(); deIt++ ){
+      std::cout << "MoveDe" << "="; 
+      std::cout << deIt->first << ":";
+      std::cout << deIt->second.ent->name << "\n";
+  }
+  std::cout << "\n===================================================\n\n";
+
+  std::map<int , CpItem> cpReturn = DefaultReturnCpItemMap();
+  for(std::map<int , CpItem>::iterator deIt = cpReturn.begin(); deIt != cpReturn.end(); deIt++ ){
+      std::cout << "DefaultCp" << "="; 
+      std::cout << &deIt << ","; 
+      std::cout << deIt->first << ":";
+      std::cout << deIt->second.ent->name << "\n";
+  }
+  std::cout << "\n===================================================\n\n";
+
+  std::map<int , CpItem> moveCpReturn = MoveReturnCpItemMap();
+  // for(std::map<int , CpItem>::iterator deIt = moveCpReturn.begin(); deIt != moveCpReturn.end(); deIt++ ){
+  //     std::cout << "MoveCp" << "="; 
+  //     std::cout << &deIt << ","; 
+  //     std::cout << deIt->first << ":";
+  //     std::cout << deIt->second.ent->name << "\n";
+  // }
+  std::cout << "\n===================================================\n\n";
+  std::cout << "map에 넣을때 최초 생성 후 pair를 만들때 move, pair에서 map에 등록할때 move가 발생 , funtion return 에서는 아무것도 발생하지 않는다..\n\n";
+}
+
 void WhyUseTest1() {
   DeItem orgDe = DeItem("orgDe");
   std::cout << "orgDe.ent->name=" << orgDe.ent->name << "," << orgDe.ent << "\n";
@@ -359,7 +456,7 @@ void WhyUseTest1() {
   std::cout << "copy.ent->name=" << copy.ent->name << "," << copy.ent << "\n\n";
   std::cout << "move.ent->name=" << move.ent->name << "," << move.ent << "\n\n";
 
-  std::cout << "class의 포인터 멤버는 별도의 생성자를 지정하지 않으면 참조된다..\n"; 
+  std::cout << "class의 포인터 멤버는 별도의 생성자를 지정하지 않으면 참조된다..\n\n\n"; 
 }
 
 int main(int argc, const char *args[]) {
@@ -376,6 +473,7 @@ int main(int argc, const char *args[]) {
 
   std::cout << "왜 복사 , 이동을 구별해야 할까? \n";
   WhyUseTest1();
+  WhyUseTest2();
 
   //TestDefault();
   //TestItemMove()
